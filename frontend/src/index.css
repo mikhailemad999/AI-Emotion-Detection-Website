@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-bg: #f8fafc;
+    --color-surface: rgba(255, 255, 255, 0.7);
+    --color-surface-hover: rgba(255, 255, 255, 0.9);
+    --color-primary: #ff6b6b;
+    --color-secondary: #4ecdc4;
+    --color-text: #0f172a;
+    --color-text-muted: #64748b;
+    --color-border: rgba(15, 23, 42, 0.1);
+  }
+
+  .dark {
+    --color-bg: #0f0f23;
+    --color-surface: rgba(30, 30, 46, 0.6);
+    --color-surface-hover: rgba(45, 45, 65, 0.8);
+    --color-primary: #ff6b6b;
+    --color-secondary: #4ecdc4;
+    --color-text: #f8fafc;
+    --color-text-muted: #94a3b8;
+    --color-border: rgba(255, 255, 255, 0.1);
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-surface backdrop-blur-xl border border-border shadow-lg;
+  }
+  
+  .glass-panel-hover {
+    @apply hover:bg-surface-hover transition-colors duration-300;
+  }
+  
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary;
+  }
+  
+  .bg-aurora {
+    background: linear-gradient(125deg, 
+      rgba(255,107,107,0.15) 0%, 
+      rgba(78,205,196,0.15) 50%, 
+      rgba(155,89,182,0.15) 100%);
+  }
+}
+
+/* Base styles */
+body {
+  margin: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
