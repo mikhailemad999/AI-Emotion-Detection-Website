@@ -67,7 +67,13 @@ class EmotionHistoryView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        limit = int(request.query_params.get('limit', 20))
+        try:
+            limit = int(request.query_params.get('limit', 20))
+            if limit <= 0:
+                limit = 20
+        except (ValueError, TypeError):
+            limit = 20
+
         records = EmotionRecord.objects.filter(
             user=request.user
         )[:limit]
@@ -98,22 +104,40 @@ class EmotionStatsView(APIView):
         ).order_by('-count').first()
 
         # Weekly data (last 7 days)
+        from django.db.models.functions import TruncDate
         weekly_records = user_records.filter(created_at__gte=week_ago)
+        
+        # Aggregate counts and dominant emotions in Python from a single query
+        stats_raw = weekly_records.annotate(
+            date=TruncDate('created_at')
+        ).values('date', 'detected_emotion').annotate(
+            count=Count('id')
+        ).order_by('date', '-count')
+
+        # Process results into a daily map
+        daily_map = {}
+        for item in stats_raw:
+            date_str = str(item['date'])
+            if date_str not in daily_map:
+                daily_map[date_str] = {
+                    'count': 0,
+                    'dominant': item['detected_emotion'],
+                    'counts': {}
+                }
+            daily_map[date_str]['count'] += item['count']
+            daily_map[date_str]['counts'][item['detected_emotion']] = item['count']
+
         weekly_data = []
         for i in range(7):
-            day = now - timedelta(days=6 - i)
-            day_records = weekly_records.filter(
-                created_at__date=day.date()
-            )
-            day_emotions = day_records.values('detected_emotion').annotate(
-                count=Count('id')
-            ).order_by('-count')
-
+            day_dt = now - timedelta(days=6 - i)
+            date_str = day_dt.strftime('%Y-%m-%d')
+            day_stats = daily_map.get(date_str, {'count': 0, 'dominant': None})
+            
             weekly_data.append({
-                'date': day.strftime('%Y-%m-%d'),
-                'day': day.strftime('%a'),
-                'count': day_records.count(),
-                'dominant': day_emotions[0]['detected_emotion'] if day_emotions else None,
+                'date': date_str,
+                'day': day_dt.strftime('%a'),
+                'count': day_stats['count'],
+                'dominant': day_stats['dominant'],
             })
 
         # Monthly data

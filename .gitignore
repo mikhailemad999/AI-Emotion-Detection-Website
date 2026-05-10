@@ -65,6 +65,7 @@ Thumbs.db
 *.sublime-workspace
 
 # App Specific
+skills/
 staticfiles/
 backend/db.sqlite3
 frontend/.env

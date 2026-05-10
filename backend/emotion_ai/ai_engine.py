@@ -6,6 +6,9 @@ to classify text into emotional categories with confidence scores.
 Singleton pattern ensures the model is loaded once and reused.
 """
 import logging
+import redis
+import json
+import hashlib
 from transformers import pipeline
 from django.conf import settings
 
@@ -28,6 +31,12 @@ def get_emotion_pipeline():
         )
         logger.info("AI model loaded successfully.")
     return _emotion_pipeline
+
+
+# ─── Redis Cache Setup ──────────────────────────────
+def get_redis_client():
+    """Get a redis client instance."""
+    return redis.from_url(settings.REDIS_URL, decode_responses=True)
 
 
 # ─── Emotion Mapping ────────────────────────────────
@@ -106,6 +115,19 @@ def analyze_emotion(text: str) -> dict:
             'color': EMOTION_COLORS['neutral'],
         }
 
+    # Generate cache key
+    text_hash = hashlib.md5(text.strip().lower().encode()).hexdigest()
+    cache_key = f"emotion_cache:{text_hash}"
+    
+    try:
+        r = get_redis_client()
+        cached_result = r.get(cache_key)
+        if cached_result:
+            logger.info("Cache hit for emotion analysis")
+            return json.loads(cached_result)
+    except Exception as e:
+        logger.warning(f"Redis cache error: {e}")
+
     pipe = get_emotion_pipeline()
     results = pipe(text[:512])[0]  # Limit input to model max
 
@@ -178,7 +200,7 @@ def analyze_emotion(text: str) -> dict:
             if len(secondary) >= 3:
                 break
 
-    return {
+    final_result = {
         'emotion': primary['emotion'],
         'confidence': primary['score'],
         'secondary_emotions': secondary,
@@ -186,3 +208,12 @@ def analyze_emotion(text: str) -> dict:
         'color': EMOTION_COLORS.get(primary['emotion'], '#BDC3C7'),
         'all_emotions': mapped_results[:7],
     }
+    
+    # Cache the result for 24 hours
+    try:
+        r = get_redis_client()
+        r.setex(cache_key, 86400, json.dumps(final_result))
+    except Exception as e:
+        logger.warning(f"Failed to cache result: {e}")
+
+    return final_result

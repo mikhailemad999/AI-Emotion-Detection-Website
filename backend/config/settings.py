@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     # Third party
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     # Local apps
     'authentication',
@@ -94,6 +95,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+    {'NAME': 'authentication.validators.ComplexityValidator'},
 ]
 
 # ─── REST Framework ─────────────────────────────────
@@ -150,6 +152,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ─── AI Model ───────────────────────────────────────
 AI_MODEL_NAME = os.getenv('AI_MODEL_NAME', 'j-hartmann/emotion-english-distilroberta-base')
+REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 
 # ─── Logging ────────────────────────────────────────
 LOGGING = {
