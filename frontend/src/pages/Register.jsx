@@ -12,6 +12,7 @@ const Register = () => {
     passwordConfirm: ''
   });
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   
   const { register } = useAuth();
@@ -19,11 +20,16 @@ const Register = () => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    // Clear field error when user starts typing
+    if (fieldErrors[e.target.name]) {
+      setFieldErrors({ ...fieldErrors, [e.target.name]: undefined });
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
 
     if (formData.password !== formData.passwordConfirm) {
       return setError('Passwords do not match');
@@ -46,8 +52,19 @@ const Register = () => {
       navigate('/analyzer');
     } else {
       setError(result.error);
+      if (result.fields) {
+        setFieldErrors(result.fields);
+      }
       setIsLoading(false);
     }
+  };
+
+  const getFieldError = (fieldName) => {
+    const errors = fieldErrors[fieldName];
+    if (errors && Array.isArray(errors) && errors.length > 0) {
+      return errors[0];
+    }
+    return null;
   };
 
   return (
@@ -80,10 +97,13 @@ const Register = () => {
               value={formData.username}
               onChange={handleChange}
               required
-              className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
+              className={`w-full pl-10 pr-4 py-2.5 bg-surface border rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all ${getFieldError('username') ? 'border-red-500' : 'border-border'}`}
               placeholder="johndoe"
             />
           </div>
+          {getFieldError('username') && (
+            <p className="text-xs text-red-500 mt-1">{getFieldError('username')}</p>
+          )}
         </div>
 
         <div className="space-y-1.5">
@@ -98,10 +118,13 @@ const Register = () => {
               value={formData.email}
               onChange={handleChange}
               required
-              className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
+              className={`w-full pl-10 pr-4 py-2.5 bg-surface border rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all ${getFieldError('email') ? 'border-red-500' : 'border-border'}`}
               placeholder="you@example.com"
             />
           </div>
+          {getFieldError('email') && (
+            <p className="text-xs text-red-500 mt-1">{getFieldError('email')}</p>
+          )}
         </div>
 
         <div className="space-y-1.5">
@@ -117,10 +140,16 @@ const Register = () => {
               onChange={handleChange}
               required
               minLength="8"
-              className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
+              className={`w-full pl-10 pr-4 py-2.5 bg-surface border rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all ${getFieldError('password') ? 'border-red-500' : 'border-border'}`}
               placeholder="••••••••"
             />
           </div>
+          {getFieldError('password') && (
+            <p className="text-xs text-red-500 mt-1">{getFieldError('password')}</p>
+          )}
+          <p className="text-xs text-text-muted mt-1">
+            Must include uppercase, lowercase, digit, and special character
+          </p>
         </div>
 
         <div className="space-y-1.5">
@@ -136,10 +165,13 @@ const Register = () => {
               onChange={handleChange}
               required
               minLength="8"
-              className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
+              className={`w-full pl-10 pr-4 py-2.5 bg-surface border rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all ${getFieldError('password_confirm') ? 'border-red-500' : 'border-border'}`}
               placeholder="••••••••"
             />
           </div>
+          {getFieldError('password_confirm') && (
+            <p className="text-xs text-red-500 mt-1">{getFieldError('password_confirm')}</p>
+          )}
         </div>
 
         <button

@@ -18,11 +18,11 @@ export const AuthProvider = ({ children }) => {
             setUser(res.data);
             setIsAuthenticated(true);
           } else {
-            handleLogout();
+            clearAuthState();
           }
         } catch (error) {
           console.error("Failed to load profile on init:", error);
-          handleLogout();
+          clearAuthState();
         }
       }
       setLoading(false);
@@ -31,13 +31,20 @@ export const AuthProvider = ({ children }) => {
     initAuth();
 
     // Listen for custom logout event from axios interceptor
-    const handleCustomLogout = () => handleLogout();
+    const handleCustomLogout = () => clearAuthState();
     window.addEventListener('auth:logout', handleCustomLogout);
     
     return () => {
       window.removeEventListener('auth:logout', handleCustomLogout);
     };
   }, []);
+
+  const clearAuthState = () => {
+    setUser(null);
+    setIsAuthenticated(false);
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+  };
 
   const login = async (email, password) => {
     try {
@@ -49,9 +56,12 @@ export const AuthProvider = ({ children }) => {
       }
       return { success: false, error: res.error?.message || 'Login failed' };
     } catch (error) {
+      const errData = error.response?.data?.error;
+      const message = errData?.message || error.response?.data?.message || error.message || 'Login failed. Please try again.';
       return { 
         success: false, 
-        error: error.response?.data?.error?.message || 'Login failed. Please try again.' 
+        error: message,
+        fields: errData?.fields || error.response?.data?.fields || {},
       };
     }
   };
@@ -66,21 +76,22 @@ export const AuthProvider = ({ children }) => {
       }
       return { success: false, error: res.error?.message || 'Registration failed' };
     } catch (error) {
+      const errData = error.response?.data?.error;
       return { 
         success: false, 
-        error: error.response?.data?.error?.message || 'Registration failed. Please try again.' 
+        error: errData?.message || 'Registration failed. Please try again.',
+        fields: errData?.fields || {},
       };
     }
   };
 
   const handleLogout = async () => {
-    if (isAuthenticated) {
+    try {
       await authService.logout();
+    } catch (e) {
+      // Ignore logout API errors
     }
-    setUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    clearAuthState();
   };
 
   return (

@@ -1,0 +1,4 @@
+node_modules
+dist
+build_error.txt
+.env.local

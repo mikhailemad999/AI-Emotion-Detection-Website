@@ -13,6 +13,9 @@ COPY . .
 # Build the app
 RUN npm run build
 
-# Nginx is handled by docker-compose, but we can provide a dummy CMD or exit
-# This Dockerfile just builds the assets which are shared via volume
-CMD ["echo", "Build completed"]
+# Final stage - serve built files via a lightweight image
+FROM busybox:1.36
+COPY --from=build /app/dist /dist
+
+# Copy dist to the shared volume mount point on startup
+CMD ["sh", "-c", "cp -r /dist/* /output/ 2>/dev/null; echo 'Frontend build copied'; sleep infinity"]

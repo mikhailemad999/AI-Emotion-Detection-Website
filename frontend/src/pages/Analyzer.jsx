@@ -2,82 +2,41 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SparklesIcon, MicrophoneIcon, DocumentArrowDownIcon, StopIcon } from '@heroicons/react/24/outline';
 import useEmotion from '../hooks/useEmotion';
+import useSpeechToText from '../hooks/useSpeechToText';
 import EmotionCard from '../components/EmotionCard';
 import AdvicePanel from '../components/AdvicePanel';
 
 const Analyzer = () => {
   const [text, setText] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
   const { analyzeEmotion, currentAnalysis, isLoading, error, clearCurrentAnalysis } = useEmotion();
+  const { 
+    isRecording, 
+    toggleRecording, 
+    transcript, 
+    isSupported 
+  } = useSpeechToText();
   
   const textareaRef = useRef(null);
-  const recognitionRef = useRef(null);
 
-  // Initialize Speech Recognition
+  // Sync transcript from speech hook to local state
   useEffect(() => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true;
-
-      recognitionRef.current.onresult = (event) => {
-        let currentTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          currentTranscript += event.results[i][0].transcript;
-        }
-        
-        if (currentTranscript) {
-          setText(prev => {
-            // Simple way to handle continuous dictation
-            const withoutLastWord = prev.endsWith(' ') ? prev : prev + ' ';
-            return withoutLastWord + currentTranscript.trim();
-          });
-        }
-      };
-
-      recognitionRef.current.onerror = (event) => {
-        console.error("Speech recognition error", event.error);
-        setIsRecording(false);
-      };
+    if (transcript) {
+      setText(prev => {
+        const space = prev && !prev.endsWith(' ') ? ' ' : '';
+        return prev + space + transcript;
+      });
     }
-
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-    };
-  }, []);
-
-  const toggleRecording = () => {
-    if (!recognitionRef.current) {
-      alert("Speech recognition is not supported in your browser.");
-      return;
-    }
-
-    if (isRecording) {
-      recognitionRef.current.stop();
-      setIsRecording(false);
-    } else {
-      setText(''); // Clear text when starting new recording
-      clearCurrentAnalysis();
-      recognitionRef.current.start();
-      setIsRecording(true);
-    }
-  };
+  }, [transcript]);
 
   const handleAnalyze = async () => {
     if (!text.trim()) return;
     if (isRecording) {
-      recognitionRef.current.stop();
-      setIsRecording(false);
+      toggleRecording();
     }
     await analyzeEmotion(text);
   };
 
   const handleExportPDF = () => {
-    // Basic implementation for now - just alerts
-    // In a real app, we'd use html2canvas and jsPDF here
     alert("PDF Export functionality will generate a report of the current analysis.");
   };
 
@@ -92,6 +51,18 @@ const Analyzer = () => {
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 300)}px`;
     }
+  };
+
+  const onToggleMic = () => {
+    if (!isSupported) {
+      alert("Speech recognition is not supported in your browser.");
+      return;
+    }
+    
+    if (!isRecording) {
+      clearCurrentAnalysis();
+    }
+    toggleRecording();
   };
 
   return (
@@ -133,7 +104,7 @@ const Analyzer = () => {
         <div className="flex items-center justify-between p-2 border-t border-border mt-2">
           <div className="flex items-center gap-2">
             <button
-              onClick={toggleRecording}
+              onClick={onToggleMic}
               disabled={isLoading}
               className={`p-3 rounded-xl transition-all flex items-center justify-center ${
                 isRecording 

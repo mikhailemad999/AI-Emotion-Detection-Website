@@ -44,16 +44,30 @@ class LoginView(APIView):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        user = authenticate(
-            request,
-            username=serializer.validated_data['email'],
-            password=serializer.validated_data['password'],
-        )
+        email = serializer.validated_data['email']
+        password = serializer.validated_data['password']
 
-        if user is None:
+        # Authenticate user
+        user = authenticate(request, username=email, password=password)
+
+        if not user:
+            # Check if user exists for specific error message or timing attack protection
+            try:
+                User.objects.get(email__iexact=email)
+                error_message = 'Invalid password.'
+            except User.DoesNotExist:
+                error_message = 'Invalid email or password.'
+                
             return Response({
                 'success': False,
-                'error': {'message': 'Invalid email or password.'}
+                'error': {'message': error_message}
+            }, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Check if account is active
+        if not user.is_active:
+            return Response({
+                'success': False,
+                'error': {'message': 'This account has been deactivated.'}
             }, status=status.HTTP_401_UNAUTHORIZED)
 
         refresh = RefreshToken.for_user(user)

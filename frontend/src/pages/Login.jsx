@@ -8,6 +8,7 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   
   const { login } = useAuth();
@@ -19,6 +20,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
     setIsLoading(true);
 
     const result = await login(email, password);
@@ -27,8 +29,19 @@ const Login = () => {
       navigate(from, { replace: true });
     } else {
       setError(result.error);
+      if (result.fields) {
+        setFieldErrors(result.fields);
+      }
       setIsLoading(false);
     }
+  };
+
+  const getFieldError = (fieldName) => {
+    const errors = fieldErrors[fieldName];
+    if (errors && Array.isArray(errors) && errors.length > 0) {
+      return errors[0];
+    }
+    return null;
   };
 
   return (
@@ -60,10 +73,13 @@ const Login = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full pl-10 pr-4 py-3 bg-surface border border-border rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
+              className={`w-full pl-10 pr-4 py-3 bg-surface border rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all ${getFieldError('email') ? 'border-red-500' : 'border-border'}`}
               placeholder="you@example.com"
             />
           </div>
+          {getFieldError('email') && (
+            <p className="text-xs text-red-500 mt-1">{getFieldError('email')}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -80,10 +96,13 @@ const Login = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full pl-10 pr-4 py-3 bg-surface border border-border rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
+              className={`w-full pl-10 pr-4 py-3 bg-surface border rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all ${getFieldError('password') ? 'border-red-500' : 'border-border'}`}
               placeholder="••••••••"
             />
           </div>
+          {getFieldError('password') && (
+            <p className="text-xs text-red-500 mt-1">{getFieldError('password')}</p>
+          )}
         </div>
 
         <button
