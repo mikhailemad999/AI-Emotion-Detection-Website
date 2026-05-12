@@ -65,8 +65,8 @@ if !attempts! gtr !max_attempts! (
     goto :show_info
 )
 
-:: Check if backend responds
-docker exec emotisense-backend python -c "print('ready')" >nul 2>&1
+:: Check if backend responds to API root
+docker exec emotisense-backend curl -s http://localhost:8000/api/ >nul 2>&1
 if %errorlevel% neq 0 (
     <nul set /p "=."
     timeout /t 2 /nobreak >nul
